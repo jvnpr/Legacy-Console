@@ -794,9 +794,22 @@ static void Win64_LoadSettings(GAME_SETTINGS *gs)
         if (fread(&temp, sizeof(GAME_SETTINGS), 1, f) == 1)
             memcpy(gs, &temp, sizeof(GAME_SETTINGS));
         fclose(f);
+		CMinecraftApp::SetSettingsFileLoaded(true);
     }
 }
 #endif
+
+bool CMinecraftApp::settingFileLoaded = false;
+
+void CMinecraftApp::SetSettingsFileLoaded(bool loaded)
+{
+	settingFileLoaded = loaded;
+}
+
+bool CMinecraftApp::GetSettingsFileLoaded() 
+{ 
+	return settingFileLoaded;
+}
 
 void CMinecraftApp::InitGameSettings()
 {
@@ -1606,26 +1619,36 @@ void CMinecraftApp::ActionGameSettings(int iPad,eGameSetting eVal)
 	}
 }
 
-void CMinecraftApp::SettingFixer()
+void CMinecraftApp::SettingFixer() // jvnpr -- used to convert settings data when necessary
 {
-	unsigned int version = ProfileManager.GetPrimaryPad()]->uiSettingDataVersion
+	int iPad = ProfileManager.GetPrimaryPad();
 
-	if (GameSettingsA[version != currentSettingDataVersion)
+	unsigned int version = GameSettingsA[iPad]->uiSettingDataVersion;
+
+	if (GetSettingsFileLoaded())
 	{
-		DebugPrintf("[SettingFixer]: Fixing Settings!\n");
+		if (version != currentSettingDataVersion)
+		{
+			DebugPrintf("[SettingFixer]: Fixing Settings!\n");
 
-		/* ex:
-		if (version < 1) fix v1 setting changes;
-		if (version < 2) fix v2 setting changes;
-		...
-		*/ 
+			// perform fixing up
+
+			GameSettingsA[iPad]->uiSettingDataVersion = currentSettingDataVersion;
+			GameSettingsA[iPad]->bSettingsChanged = true;
+			CheckGameSettingsChanged(true, iPad);
+
+			DebugPrintf("[SettingFixer]: Settings fixed and saved.\n");
+
+		}
+		else
+		{
+			DebugPrintf("[SettingFixer]: Nothing to do.\n");
+		}
 	}
 	else
 	{
-		DebugPrintf("[SettingFixer]: Nothing to do.\n");
+		DebugPrintf("[SettingFixer]: No settings file found, nothing to do.\n");
 	}
-
-	GameSettingsA[ProfileManager.GetPrimaryPad()]->uiSettingDataVersion = currentSettingDataVersion;
 }
 
 void CMinecraftApp::SetPlayerSkin(int iPad,const wstring &name)
