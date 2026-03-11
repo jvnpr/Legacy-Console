@@ -85,7 +85,7 @@ int CMinecraftApp::s_iHTMLFontSizesA[eHTMLSize_COUNT] =
 };
 
 // jvnpr -- update this anytime settingfixer needs to convert old settings to new settings!
-const int currentSettingDataVersion = 1;
+const int currentSettingDataVersion = 2;
 
 CMinecraftApp::CMinecraftApp()
 {
@@ -1630,7 +1630,18 @@ void CMinecraftApp::SettingFixer() // jvnpr -- used to convert settings data whe
 		{
 			DebugPrintf("[SettingFixer]: Fixing Settings!\n");
 
-			// perform fixing up
+			
+			if (version < 2) { // FOV changes
+				float newFov = GetGameSettings(iPad,eGameSetting_FOV) * 40.0f / 100.0f; // convert old setting of 0-100 to a new range of 0-40
+				if (newFov > 20) newFov = 20; // FOV setting of 90 with old system is equivalent to an FOV of 110 (maximum) with new system.
+				newFov *= 2; // map range of 0-20 to 0-40 so we can convert to a new equivalent FOV
+				newFov += 40; // offset so that our new FOV is within the range of 40-80. (we store as 0-80 instead of 30-110)
+
+				Minecraft* pMinecraft = Minecraft::GetInstance();
+				pMinecraft->options->fov = (newFov / 40.0f) - 1; // convert 0-80 to range of -1 to 1
+
+				SetGameSettings(iPad, eGameSetting_FOV, newFov);
+			}
 
 			GameSettingsA[iPad]->uiSettingDataVersion = currentSettingDataVersion;
 			GameSettingsA[iPad]->bSettingsChanged = true;
